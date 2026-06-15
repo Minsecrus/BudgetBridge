@@ -77,7 +77,11 @@ func main() {
 			if fwd := c.GetHeader("X-Forwarded-Proto"); fwd != "" {
 				scheme = fwd
 			}
-			pubURL = fmt.Sprintf("%s://%s:%s", scheme, c.Request.URL.Hostname(), strings.TrimPrefix(cfg.Listen, ":"))
+			host := c.Request.Host
+			if idx := strings.Index(host, ":"); idx != -1 {
+				host = host[:idx]
+			}
+			pubURL = fmt.Sprintf("%s://%s:%s", scheme, host, strings.TrimPrefix(cfg.Listen, ":"))
 		}
 		c.JSON(200, gin.H{"public_url": pubURL})
 	})
