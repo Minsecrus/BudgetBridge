@@ -1,21 +1,41 @@
-import { Copy, Check, Zap, Plus, FlaskConical, Trash2 } from 'lucide-react'
-import { useState } from 'react'
+import { Copy, Check, Zap, Plus, FlaskConical, Trash2, LayoutGrid, List } from 'lucide-react'
+import { useState, useEffect } from 'react'
 import type { AccountStatus } from '../types'
 import { AddAccountModal } from './AddAccountModal'
 import { TestModal } from './TestModal'
 
-export function TopBar({ accounts, onUpdate }: { accounts: AccountStatus[]; onUpdate: () => Promise<void> }) {
+export function TopBar({ accounts, onUpdate, compact, onToggleCompact }: {
+  accounts: AccountStatus[]
+  onUpdate: () => Promise<void>
+  compact: boolean
+  onToggleCompact: () => void
+}) {
   const [copied, setCopied] = useState(false)
   const [showAdd, setShowAdd] = useState(false)
   const [showTest, setShowTest] = useState(false)
   const [clearConfirm, setClearConfirm] = useState(false)
-  const endpoint = `${location.protocol}//${location.hostname}:8080/v1`
+  const [apiFormat, setApiFormat] = useState<'openai' | 'anthropic'>('openai')
+  const [baseUrl, setBaseUrl] = useState('')
+
+  useEffect(() => {
+    fetch('/admin/config')
+      .then(r => r.json())
+      .then(data => setBaseUrl(data.public_url))
+      .catch(() => setBaseUrl(''))
+  }, [])
+
+  const endpoint = apiFormat === 'openai' ? `${baseUrl}/v1` : baseUrl
+  const apiLabel = apiFormat === 'openai' ? 'OpenAI' : 'Anthropic'
   const active = accounts.filter(a => a.available).length
 
   const copy = async () => {
     await navigator.clipboard.writeText(endpoint)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
+  }
+
+  const toggleApiFormat = () => {
+    setApiFormat(prev => prev === 'openai' ? 'anthropic' : 'openai')
   }
 
   const clearAll = async () => {
@@ -37,17 +57,33 @@ export function TopBar({ accounts, onUpdate }: { accounts: AccountStatus[]; onUp
             </span>
           </div>
 
-          <button
-            onClick={copy}
-            className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 rounded-lg px-4 py-2 transition-colors group max-w-sm w-full"
-          >
-            <span className="text-xs font-mono text-gray-300 truncate flex-1 text-left">{endpoint}</span>
-            {copied
-              ? <Check className="w-3.5 h-3.5 text-green-400 shrink-0" />
-              : <Copy className="w-3.5 h-3.5 text-gray-400 group-hover:text-gray-200 shrink-0 transition-colors" />}
-          </button>
+          <div className="flex items-center gap-2 max-w-md w-full">
+            <button
+              onClick={toggleApiFormat}
+              className="shrink-0 px-2 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-xs font-medium text-gray-400 hover:text-gray-200 transition-colors"
+              title={`切换为 ${apiFormat === 'openai' ? 'Anthropic' : 'OpenAI'} 格式`}
+            >
+              {apiLabel}
+            </button>
+            <button
+              onClick={copy}
+              className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 rounded-lg px-4 py-2 transition-colors group flex-1"
+            >
+              <span className="text-xs font-mono text-gray-300 truncate flex-1 text-left">{endpoint}</span>
+              {copied
+                ? <Check className="w-3.5 h-3.5 text-green-400 shrink-0" />
+                : <Copy className="w-3.5 h-3.5 text-gray-400 group-hover:text-gray-200 shrink-0 transition-colors" />}
+            </button>
+          </div>
 
           <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={onToggleCompact}
+              title={compact ? '卡片视图' : '紧凑视图'}
+              className="flex items-center justify-center w-9 h-9 bg-gray-800 hover:bg-gray-700 rounded-lg text-gray-300 transition-colors"
+            >
+              {compact ? <LayoutGrid className="w-4 h-4" /> : <List className="w-4 h-4" />}
+            </button>
             <button
               onClick={() => setShowTest(true)}
               className="flex items-center gap-1.5 bg-gray-800 hover:bg-gray-700 rounded-lg px-3 py-2 text-sm font-medium text-gray-300 transition-colors"

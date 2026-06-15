@@ -1,8 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	"budgetbridge/internal/monitor"
 	"budgetbridge/internal/pool"
@@ -14,9 +16,11 @@ import (
 )
 
 type Config struct {
-	Listen      string             `yaml:"listen"`
-	UpstreamURL string             `yaml:"upstream_url"`
-	Accounts    []pool.AccountConfig `yaml:"accounts"`
+	Listen        string               `yaml:"listen"`
+	UpstreamURL   string               `yaml:"upstream_url"`
+	ModelOverride string               `yaml:"model_override"`
+	PublicURL     string               `yaml:"public_url"`
+	Accounts      []pool.AccountConfig `yaml:"accounts"`
 }
 
 func main() {
@@ -53,10 +57,30 @@ func main() {
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.New()
 	r.Use(gin.Recovery(), cors.Default())
+	r.Use(func(c *gin.Context) {
+		log.Printf("[req] %s %s", c.Request.Method, c.Request.URL.Path)
+		c.Next()
+		log.Printf("[res] %s %s → %d", c.Request.Method, c.Request.URL.Path, c.Writer.Status())
+	})
 
-	r.POST("/v1/chat/completions", proxy.Handler(p, cfg.UpstreamURL))
+	r.POST("/v1/chat/completions", proxy.Handler(p, cfg.UpstreamURL, cfg.ModelOverride))
+	r.POST("/v1/messages", proxy.AnthropicHandler(p, cfg.UpstreamURL, cfg.ModelOverride))
 
 	adm := r.Group("/admin")
+	adm.GET("/config", func(c *gin.Context) {
+		pubURL := cfg.PublicURL
+		if pubURL == "" {
+			scheme := "http"
+			if c.Request.TLS != nil {
+				scheme = "https"
+			}
+			if fwd := c.GetHeader("X-Forwarded-Proto"); fwd != "" {
+				scheme = fwd
+			}
+			pubURL = fmt.Sprintf("%s://%s:%s", scheme, c.Request.URL.Hostname(), strings.TrimPrefix(cfg.Listen, ":"))
+		}
+		c.JSON(200, gin.H{"public_url": pubURL})
+	})
 	adm.GET("/accounts", proxy.ListAccounts(p))
 	adm.POST("/accounts", proxy.AddAccount(p, saver))
 	adm.DELETE("/accounts", proxy.ClearAccounts(p, saver))

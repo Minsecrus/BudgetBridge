@@ -3,6 +3,7 @@ package proxy
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -17,7 +18,7 @@ import (
 
 var httpClient = &http.Client{Timeout: 5 * time.Minute}
 
-func Handler(p *pool.Pool, upstream string) gin.HandlerFunc {
+func Handler(p *pool.Pool, upstream, modelOverride string) gin.HandlerFunc {
 	url := upstream + "/chat/completions"
 	return func(c *gin.Context) {
 		body, err := io.ReadAll(c.Request.Body)
@@ -30,6 +31,14 @@ func Handler(p *pool.Pool, upstream string) gin.HandlerFunc {
 			Stream bool `json:"stream"`
 		}
 		json.Unmarshal(body, &payload) //nolint
+
+		if modelOverride != "" {
+			var m map[string]json.RawMessage
+			if json.Unmarshal(body, &m) == nil {
+				m["model"], _ = json.Marshal(modelOverride)
+				body, _ = json.Marshal(m)
+			}
+		}
 
 		for i := 0; i < p.Len(); i++ {
 			acc := p.Next()
@@ -78,8 +87,11 @@ func Handler(p *pool.Pool, upstream string) gin.HandlerFunc {
 				}
 				return
 			default:
-				resp.Body.Close()
-				continue
+				// Not an account error — pass upstream response through as-is
+				defer resp.Body.Close()
+				c.DataFromReader(resp.StatusCode, resp.ContentLength,
+					resp.Header.Get("Content-Type"), resp.Body, nil)
+				return
 			}
 		}
 
@@ -100,9 +112,12 @@ func ClearAccounts(p *pool.Pool, save func([]pool.AccountConfig) error) gin.Hand
 func AddAccount(p *pool.Pool, save func([]pool.AccountConfig) error) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var cfg pool.AccountConfig
-		if err := c.ShouldBindJSON(&cfg); err != nil || cfg.Alias == "" || cfg.APIKey == "" {
-			c.JSON(400, gin.H{"error": "alias, api_key, ak_id, ak_secret are required"})
+		if err := c.ShouldBindJSON(&cfg); err != nil || cfg.APIKey == "" {
+			c.JSON(400, gin.H{"error": "api_key is required"})
 			return
+		}
+		if cfg.Alias == "" {
+			cfg.Alias = fmt.Sprintf("账号%d", p.Len()+1)
 		}
 		idx := p.Add(cfg)
 		if err := save(p.Configs()); err != nil {

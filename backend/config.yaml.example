@@ -1,6 +1,8 @@
 listen: ":8080"
 # 上游模型服务的 OpenAI 兼容 Base URL（含 /v1）
 upstream_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+# 前端展示用的公开地址，留空则自动拼接 hostname:8080
+# public_url: "https://your-domain.com"
 
 accounts:
   - alias: "账号A"

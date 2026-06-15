@@ -2,10 +2,10 @@ import { X } from 'lucide-react'
 import { useState } from 'react'
 
 const FIELDS = [
-  { key: 'alias',     label: '账号别名',         placeholder: '账号A',        type: 'text'     },
-  { key: 'api_key',   label: 'API Key',           placeholder: 'sk-...',       type: 'password' },
-  { key: 'ak_id',     label: 'AccessKey ID',      placeholder: 'LTAI5...',     type: 'text'     },
-  { key: 'ak_secret', label: 'AccessKey Secret',  placeholder: '••••••••',     type: 'password' },
+  { key: 'alias',     label: '账号别名（选填，留空自动顺延）', placeholder: '账号1', type: 'text',     required: false },
+  { key: 'api_key',   label: 'API Key',                        placeholder: 'sk-...', type: 'password', required: true  },
+  { key: 'ak_id',     label: 'AccessKey ID',                   placeholder: 'LTAI5...', type: 'text',   required: true  },
+  { key: 'ak_secret', label: 'AccessKey Secret',               placeholder: '••••••••', type: 'password', required: true },
 ] as const
 
 type FormKey = typeof FIELDS[number]['key']
@@ -54,12 +54,12 @@ export function AddAccountModal({ onClose, onAdded }: { onClose: () => void; onA
         </div>
 
         <form onSubmit={submit} className="flex flex-col gap-3">
-          {FIELDS.map(({ key, label, placeholder, type }) => (
+          {FIELDS.map(({ key, label, placeholder, type, required }) => (
             <div key={key}>
               <label className="block text-xs text-gray-400 mb-1">{label}</label>
               <input
                 type={type}
-                required
+                required={required}
                 value={form[key]}
                 onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
                 placeholder={placeholder}

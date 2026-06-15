@@ -7,10 +7,10 @@ import (
 )
 
 type AccountConfig struct {
-	Alias    string `yaml:"alias"`
-	APIKey   string `yaml:"api_key"`
-	AKId     string `yaml:"ak_id"`
-	AKSecret string `yaml:"ak_secret"`
+	Alias    string `yaml:"alias"     json:"alias"`
+	APIKey   string `yaml:"api_key"   json:"api_key"`
+	AKId     string `yaml:"ak_id"     json:"ak_id"`
+	AKSecret string `yaml:"ak_secret" json:"ak_secret"`
 }
 
 type Account struct {

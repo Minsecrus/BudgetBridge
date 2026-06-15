@@ -6,6 +6,7 @@ import type { AccountStatus } from './types'
 export default function App() {
   const [accounts, setAccounts] = useState<AccountStatus[]>([])
   const [loading, setLoading] = useState(true)
+  const [compact, setCompact] = useState(false)
 
   const fetchAccounts = useCallback(async () => {
     try {
@@ -24,12 +25,18 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100">
-      <TopBar accounts={accounts} onUpdate={fetchAccounts} />
+      <TopBar accounts={accounts} onUpdate={fetchAccounts} compact={compact} onToggleCompact={() => setCompact(v => !v)} />
       <main className="max-w-7xl mx-auto px-6 py-8">
         {loading ? (
           <div className="flex items-center justify-center py-32 text-gray-600">加载中…</div>
         ) : accounts.length === 0 ? (
           <div className="flex items-center justify-center py-32 text-gray-600">暂无账号</div>
+        ) : compact ? (
+          <div className="flex flex-col gap-1">
+            {accounts.map(acc => (
+              <AccountCard key={acc.index} account={acc} onUpdate={fetchAccounts} compact />
+            ))}
+          </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {accounts.map(acc => (

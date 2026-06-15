@@ -8,6 +8,8 @@
 - 💰 BSS API 余额监控（每 5 分钟），低于 ¥3.00 自动停用
 - ⚡ 429 限流自动冷却 60s 并换号重试
 - 🌊 Stream 流式无感重试（先确认 200 再转发给客户端）
+- 🤖 Anthropic API 兼容（`/v1/messages`），支持 Claude Code 等客户端
+- 🔧 模型名称覆盖（`model_override`），透明替换请求中的模型 ID
 - 📊 React 看板：账号增删、余额查询、启停、测试、清空
 
 ## 快速开始
@@ -42,13 +44,37 @@ docker compose up -d
 
 ## API 接入
 
-在 New API 或其他客户端中，将 Base URL 设为：
+前端顶栏会显示当前地址，点击按钮可在 OpenAI / Anthropic 格式间切换。
+
+> 部署时建议在 `config.yaml` 中设置 `public_url`，前端会自动使用配置的地址，无需手动拼接。
+
+### OpenAI 兼容客户端
+
+Base URL 末尾带 `/v1`：
 
 ```
-http://your-host:8080/v1
+<public_url>/v1
 ```
 
 Key 填任意值（后端转发时自动替换为真实 key）。
+
+### Anthropic 兼容客户端（Claude Code）
+
+Base URL 末尾**不带** `/v1`：
+
+```json
+{
+  "env": {
+    "ANTHROPIC_BASE_URL": "<public_url>",
+    "ANTHROPIC_API_KEY": "any-key"
+  }
+}
+```
+
+**工作原理：**
+- 客户端发送 Anthropic 格式请求（`POST /v1/messages`）
+- 代理自动转换为 OpenAI 格式转发给上游
+- 支持流式输出、工具调用（Function Calling）、多轮对话
 
 ## Dashboard 操作说明
 
@@ -66,6 +92,7 @@ Key 填任意值（后端转发时自动替换为真实 key）。
 ```yaml
 listen: ":8080"
 upstream_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+public_url: "https://your-domain.com"  # 前端展示用的公开地址，留空则自动拼接为请求的 hostname:listen端口
 
 accounts:
   - alias: "账号A"
