@@ -38,14 +38,14 @@ docker compose up -d --build
 
 ```yaml
 listen: ":8080"
-upstream_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+upstream_url: "https://your-upstream-api.com/compatible-mode/v1"
 public_url: "https://your-domain.com"  # 你的域名或 IP:端口
 
 accounts:
   - alias: "账号A"
     api_key: "sk-..."        # 模型调用密钥
-    ak_id: "LTAI5..."        # 阿里云 RAM AccessKey ID
-    ak_secret: "..."         # 阿里云 RAM AccessKey Secret
+    ak_id: "LTAI5..."        # AccessKey ID
+    ak_secret: "..."         # AccessKey Secret
 ```
 
 **字段说明：**
@@ -55,9 +55,7 @@ accounts:
 - `public_url`: 前端展示用的公开地址，留空则自动使用请求的 hostname:listen端口
 - `accounts`: 账号池配置，支持多个账号轮询
 
-**阿里云 RAM 权限：**
-
-RAM 账号需授予 `AliyunBSSReadOnlyAccess` 策略（含 `bss:QueryCashCoupons` 权限）用于余额查询。
+需要授予余额查询相关权限。
 
 ## Docker 部署
 
@@ -198,16 +196,13 @@ sudo journalctl -u budgetbridge -f
 
 ## 客户端配置
 
-### Claude Code
-
-在 `~/.claude/settings.json` 中配置：
+### Anthropic 兼容客户端
 
 ```json
 {
   "env": {
     "ANTHROPIC_BASE_URL": "https://your-domain.com",
-    "ANTHROPIC_API_KEY": "any-key",
-    "ANTHROPIC_MODEL": "claude-sonnet-4-6"
+    "ANTHROPIC_API_KEY": "any-key"
   }
 }
 ```
@@ -289,7 +284,7 @@ sudo journalctl -u budgetbridge -f
 
 ### 账号余额查询失败
 
-检查阿里云 RAM 权限和 AccessKey 是否正确：
+检查权限和 AccessKey 是否正确：
 
 ```bash
 docker compose exec backend ./budgetbridge -check-account 0

@@ -28,9 +28,9 @@ export default function App() {
       <TopBar accounts={accounts} onUpdate={fetchAccounts} compact={compact} onToggleCompact={() => setCompact(v => !v)} />
       <main className="max-w-7xl mx-auto px-6 py-8">
         {loading ? (
-          <div className="flex items-center justify-center py-32 text-gray-600">加载中…</div>
+          <div className="flex items-center justify-center py-32 text-gray-400">加载中…</div>
         ) : accounts.length === 0 ? (
-          <div className="flex items-center justify-center py-32 text-gray-600">暂无账号</div>
+          <div className="flex items-center justify-center py-32 text-gray-400">暂无账号</div>
         ) : compact ? (
           <div className="flex flex-col gap-1">
             {accounts.map(acc => (

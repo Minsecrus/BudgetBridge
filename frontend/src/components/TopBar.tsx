@@ -52,7 +52,7 @@ export function TopBar({ accounts, onUpdate, compact, onToggleCompact }: {
           <div className="flex items-center gap-3 shrink-0">
             <Zap className="w-5 h-5 text-yellow-400" />
             <span className="font-bold text-lg tracking-tight">BudgetBridge</span>
-            <span className="text-xs bg-gray-800 text-gray-400 px-2 py-0.5 rounded-full">
+            <span className="text-xs bg-gray-800 text-gray-300 px-2 py-0.5 rounded-full">
               {active}/{accounts.length} 可用
             </span>
           </div>
@@ -60,7 +60,7 @@ export function TopBar({ accounts, onUpdate, compact, onToggleCompact }: {
           <div className="flex items-center gap-2 max-w-md w-full">
             <button
               onClick={toggleApiFormat}
-              className="shrink-0 px-2 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-xs font-medium text-gray-400 hover:text-gray-200 transition-colors"
+              className="shrink-0 px-2 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-xs font-medium text-gray-200 hover:text-white transition-colors"
               title={`切换为 ${apiFormat === 'openai' ? 'Anthropic' : 'OpenAI'} 格式`}
             >
               {apiLabel}

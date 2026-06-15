@@ -77,9 +77,9 @@ export function AccountCard({ account, onUpdate, compact = false }: {
       <span className="font-medium w-24 truncate shrink-0">{account.alias}</span>
       {account.last_checked
         ? <span className={`font-bold tabular-nums w-16 shrink-0 ${BalanceColor(account.balance)}`}>¥{account.balance.toFixed(2)}</span>
-        : <span className="font-bold text-gray-600 w-16 shrink-0">—</span>}
-      <span className="text-xs text-gray-400 shrink-0">{account.coupon_count}券</span>
-      <span className="text-xs text-gray-500 shrink-0">{lastChecked}</span>
+        : <span className="font-bold text-gray-400 w-16 shrink-0">—</span>}
+      <span className="text-xs text-gray-300 shrink-0">{account.coupon_count}券</span>
+      <span className="text-xs text-gray-300 shrink-0">{lastChecked}</span>
       {account.cooldown_secs > 0 && (
         <span className="text-xs text-yellow-500 shrink-0 flex items-center gap-1">
           <Timer className="w-3 h-3" />{account.cooldown_secs}s
@@ -107,7 +107,7 @@ export function AccountCard({ account, onUpdate, compact = false }: {
           <StatusIcon account={account} />
           <span className="font-semibold text-sm truncate">{account.alias}</span>
         </div>
-        <span className="text-xs text-gray-500 shrink-0 ml-2">#{account.index + 1}</span>
+        <span className="text-xs text-gray-300 shrink-0 ml-2">#{account.index + 1}</span>
       </div>
 
       <div>
@@ -116,22 +116,22 @@ export function AccountCard({ account, onUpdate, compact = false }: {
             ¥{account.balance.toFixed(2)}
           </div>
         ) : (
-          <div className="text-3xl font-bold text-gray-600">—</div>
+          <div className="text-3xl font-bold text-gray-400">—</div>
         )}
-        <div className="text-xs text-gray-400 mt-0.5">
+        <div className="text-xs text-gray-300 mt-0.5">
           {account.last_checked ? `${account.coupon_count} 张有效券` : '尚未查询'}
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-2">
         <div className="bg-gray-800/60 rounded-lg p-2.5">
-          <div className="flex items-center gap-1 text-gray-400 text-xs mb-1">
+          <div className="flex items-center gap-1 text-gray-300 text-xs mb-1">
             <TrendingUp className="w-3 h-3" />请求数
           </div>
           <div className="font-mono text-sm font-medium text-gray-100">{account.request_count.toLocaleString()}</div>
         </div>
         <div className="bg-gray-800/60 rounded-lg p-2.5">
-          <div className="text-gray-400 text-xs mb-1">更新于</div>
+          <div className="text-gray-300 text-xs mb-1">更新于</div>
           <div className="text-sm font-medium text-gray-100">{lastChecked}</div>
         </div>
       </div>

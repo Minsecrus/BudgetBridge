@@ -52,7 +52,7 @@ export function TestModal({ onClose }: { onClose: () => void }) {
         </div>
 
         <div>
-          <label className="block text-xs text-gray-400 mb-1">模型</label>
+          <label className="block text-xs text-gray-300 mb-1">模型</label>
           <input
             value={model}
             onChange={e => setModel(e.target.value)}
@@ -61,7 +61,7 @@ export function TestModal({ onClose }: { onClose: () => void }) {
         </div>
 
         <div>
-          <label className="block text-xs text-gray-400 mb-1">提示词</label>
+          <label className="block text-xs text-gray-300 mb-1">提示词</label>
           <textarea
             rows={3}
             value={prompt}

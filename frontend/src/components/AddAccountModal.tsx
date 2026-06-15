@@ -56,7 +56,7 @@ export function AddAccountModal({ onClose, onAdded }: { onClose: () => void; onA
         <form onSubmit={submit} className="flex flex-col gap-3">
           {FIELDS.map(({ key, label, placeholder, type, required }) => (
             <div key={key}>
-              <label className="block text-xs text-gray-400 mb-1">{label}</label>
+              <label className="block text-xs text-gray-300 mb-1">{label}</label>
               <input
                 type={type}
                 required={required}
