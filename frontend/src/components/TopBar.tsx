@@ -1,4 +1,4 @@
-import { Copy, Check, Zap, Plus, FlaskConical } from 'lucide-react'
+import { Copy, Check, Zap, Plus, FlaskConical, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import type { AccountStatus } from '../types'
 import { AddAccountModal } from './AddAccountModal'
@@ -8,6 +8,7 @@ export function TopBar({ accounts, onUpdate }: { accounts: AccountStatus[]; onUp
   const [copied, setCopied] = useState(false)
   const [showAdd, setShowAdd] = useState(false)
   const [showTest, setShowTest] = useState(false)
+  const [clearConfirm, setClearConfirm] = useState(false)
   const endpoint = `${location.protocol}//${location.hostname}:8080/v1`
   const active = accounts.filter(a => a.available).length
 
@@ -15,6 +16,13 @@ export function TopBar({ accounts, onUpdate }: { accounts: AccountStatus[]; onUp
     await navigator.clipboard.writeText(endpoint)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
+  }
+
+  const clearAll = async () => {
+    if (!clearConfirm) { setClearConfirm(true); setTimeout(() => setClearConfirm(false), 3000); return }
+    await fetch('/admin/accounts', { method: 'DELETE' })
+    setClearConfirm(false)
+    await onUpdate()
   }
 
   return (
@@ -33,10 +41,10 @@ export function TopBar({ accounts, onUpdate }: { accounts: AccountStatus[]; onUp
             onClick={copy}
             className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 rounded-lg px-4 py-2 transition-colors group max-w-sm w-full"
           >
-            <span className="text-xs font-mono text-gray-400 truncate flex-1 text-left">{endpoint}</span>
+            <span className="text-xs font-mono text-gray-300 truncate flex-1 text-left">{endpoint}</span>
             {copied
               ? <Check className="w-3.5 h-3.5 text-green-400 shrink-0" />
-              : <Copy className="w-3.5 h-3.5 text-gray-500 group-hover:text-gray-300 shrink-0 transition-colors" />}
+              : <Copy className="w-3.5 h-3.5 text-gray-400 group-hover:text-gray-200 shrink-0 transition-colors" />}
           </button>
 
           <div className="flex items-center gap-2 shrink-0">
@@ -46,6 +54,17 @@ export function TopBar({ accounts, onUpdate }: { accounts: AccountStatus[]; onUp
             >
               <FlaskConical className="w-4 h-4" />
               测试
+            </button>
+            <button
+              onClick={clearAll}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                clearConfirm
+                  ? 'bg-red-600 hover:bg-red-500 text-white'
+                  : 'bg-gray-800 hover:bg-gray-700 text-gray-300'
+              }`}
+            >
+              <Trash2 className="w-4 h-4" />
+              {clearConfirm ? '确认清空？' : '清空'}
             </button>
             <button
               onClick={() => setShowAdd(true)}
@@ -58,13 +77,9 @@ export function TopBar({ accounts, onUpdate }: { accounts: AccountStatus[]; onUp
         </div>
       </header>
 
-      {showAdd && (
-        <AddAccountModal
-          onClose={() => setShowAdd(false)}
-          onAdded={onUpdate}
-        />
-      )}
+      {showAdd && <AddAccountModal onClose={() => setShowAdd(false)} onAdded={onUpdate} />}
       {showTest && <TestModal onClose={() => setShowTest(false)} />}
     </>
   )
 }
+

@@ -59,6 +59,7 @@ func main() {
 	adm := r.Group("/admin")
 	adm.GET("/accounts", proxy.ListAccounts(p))
 	adm.POST("/accounts", proxy.AddAccount(p, saver))
+	adm.DELETE("/accounts", proxy.ClearAccounts(p, saver))
 	adm.POST("/accounts/:index/toggle", proxy.ToggleAccount(p))
 	adm.POST("/accounts/:index/refresh", proxy.RefreshAccount(p))
 	adm.POST("/accounts/:index/cooldown/clear", proxy.ClearCooldown(p))

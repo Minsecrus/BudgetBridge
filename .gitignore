@@ -1,6 +1,7 @@
 # Binaries
 backend/budgetbridge
 backend/budgetbridge.exe
+backend/tmp/
 
 # Secrets — NEVER commit
 backend/config.yaml

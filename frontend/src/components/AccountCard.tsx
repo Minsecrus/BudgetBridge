@@ -77,31 +77,37 @@ export function AccountCard({
           <StatusIcon account={account} />
           <span className="font-semibold text-sm truncate">{account.alias}</span>
         </div>
-        <span className="text-xs text-gray-600 shrink-0 ml-2">#{account.index + 1}</span>
+        <span className="text-xs text-gray-500 shrink-0 ml-2">#{account.index + 1}</span>
       </div>
 
       {/* Balance */}
       <div>
-        <div className={`text-3xl font-bold tabular-nums ${BalanceColor(account.balance)}`}>
-          ¥{account.balance.toFixed(2)}
+        {account.last_checked ? (
+          <div className={`text-3xl font-bold tabular-nums ${BalanceColor(account.balance)}`}>
+            ¥{account.balance.toFixed(2)}
+          </div>
+        ) : (
+          <div className="text-3xl font-bold text-gray-600">—</div>
+        )}
+        <div className="text-xs text-gray-500 mt-0.5">
+          {account.last_checked ? `${account.coupon_count} 张有效券` : '尚未查询'}
         </div>
-        <div className="text-xs text-gray-500 mt-0.5">{account.coupon_count} 张有效券</div>
       </div>
 
       {/* Stats grid */}
       <div className="grid grid-cols-2 gap-2">
         <div className="bg-gray-800/60 rounded-lg p-2.5">
-          <div className="flex items-center gap-1 text-gray-500 text-xs mb-1">
+          <div className="flex items-center gap-1 text-gray-400 text-xs mb-1">
             <TrendingUp className="w-3 h-3" />
             请求数
           </div>
-          <div className="font-mono text-sm font-medium text-gray-200">
+          <div className="font-mono text-sm font-medium text-gray-100">
             {account.request_count.toLocaleString()}
           </div>
         </div>
         <div className="bg-gray-800/60 rounded-lg p-2.5">
-          <div className="text-gray-500 text-xs mb-1">更新于</div>
-          <div className="text-sm font-medium text-gray-200">{lastChecked}</div>
+          <div className="text-gray-400 text-xs mb-1">更新于</div>
+          <div className="text-sm font-medium text-gray-100">{lastChecked}</div>
         </div>
       </div>
 
@@ -117,7 +123,7 @@ export function AccountCard({
       <div className="flex items-center gap-1 pt-1 border-t border-gray-800 -mx-1">
         <Btn
           icon={<RefreshCw className={`w-3.5 h-3.5 ${busy === 'refresh' ? 'animate-spin' : ''}`} />}
-          label="刷新"
+          label="查余额"
           onClick={() => call('refresh', 'refresh')}
           disabled={!!busy}
         />

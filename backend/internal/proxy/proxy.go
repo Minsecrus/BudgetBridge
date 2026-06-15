@@ -87,6 +87,16 @@ func Handler(p *pool.Pool, upstream string) gin.HandlerFunc {
 	}
 }
 
+func ClearAccounts(p *pool.Pool, save func([]pool.AccountConfig) error) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		p.Clear()
+		if err := save(p.Configs()); err != nil {
+			log.Printf("[warn] save config: %v", err)
+		}
+		c.JSON(200, gin.H{"ok": true})
+	}
+}
+
 func AddAccount(p *pool.Pool, save func([]pool.AccountConfig) error) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var cfg pool.AccountConfig

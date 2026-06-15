@@ -111,6 +111,10 @@ func (p *Pool) ClearCooldown(idx int) bool {
 	return true
 }
 
+func (p *Pool) Clear() {
+	p.accounts = nil
+}
+
 func (p *Pool) Add(cfg AccountConfig) int {
 	p.accounts = append(p.accounts, &Account{AccountConfig: cfg, Enabled: true})
 	return len(p.accounts) - 1
