@@ -34,13 +34,15 @@ copy backend\config.yaml.example backend\config.yaml
 ### Docker 部署
 
 ```bash
-copy backend\config.yaml.example backend\config.yaml
+cp backend/config.yaml.example backend/config.yaml
 # 编辑 config.yaml
 
 docker compose up -d
 # 前端: http://localhost:3000
 # API:  http://localhost:8080/v1
 ```
+
+生产环境部署（Nginx 反向代理、HTTPS、systemd 等）详见 [部署指南](docs/deployment.md)。
 
 ## API 接入
 
