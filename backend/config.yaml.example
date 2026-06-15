@@ -1,0 +1,14 @@
+listen: ":8080"
+# 上游模型服务的 OpenAI 兼容 Base URL（含 /v1）
+upstream_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+
+accounts:
+  - alias: "账号A"
+    api_key: "sk-xxxxxxxxxxxxxxxxxxxx"
+    ak_id: "LTAI5xxxxxxxxxxxx"
+    ak_secret: "xxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+
+  - alias: "账号B"
+    api_key: "sk-xxxxxxxxxxxxxxxxxxxx"
+    ak_id: "LTAI5xxxxxxxxxxxx"
+    ak_secret: "xxxxxxxxxxxxxxxxxxxxxxxxxxxx"
