@@ -51,7 +51,7 @@ docker compose up -d
 ./scripts/deploy.sh
 ```
 
-脚本会引导填写配置（包括端口）、添加账号，可选自动配置 Nginx + HTTPS。所有配置会写入 `backend/config.yaml`，并自动同步到 Docker 和 Nginx 配置。
+脚本会引导填写配置（包括端口），可选自动配置 Nginx + HTTPS。所有配置会写入 `backend/config.yaml`，并自动同步到 Docker 和 Nginx 配置。
 
 #### 生产环境
 
