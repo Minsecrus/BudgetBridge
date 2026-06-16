@@ -4,13 +4,13 @@ services:
     volumes:
       - ./backend/config.yaml:/app/config.yaml:ro
     ports:
-      - "8080:8080"
+      - "__BACKEND_PORT__:__BACKEND_PORT__"
     restart: unless-stopped
 
   frontend:
     build: ./frontend
     ports:
-      - "3000:80"
+      - "__FRONTEND_PORT__:80"
     depends_on:
       - backend
     restart: unless-stopped

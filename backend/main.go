@@ -16,11 +16,12 @@ import (
 )
 
 type Config struct {
-	Listen        string               `yaml:"listen"`
-	UpstreamURL   string               `yaml:"upstream_url"`
-	ModelOverride string               `yaml:"model_override"`
-	PublicURL     string               `yaml:"public_url"`
-	Accounts      []pool.AccountConfig `yaml:"accounts"`
+	Listen       string               `yaml:"listen"`
+	FrontendPort int                  `yaml:"frontend_port"`
+	UpstreamURL  string               `yaml:"upstream_url"`
+	ModelOverride string              `yaml:"model_override"`
+	PublicURL    string               `yaml:"public_url"`
+	Accounts     []pool.AccountConfig `yaml:"accounts"`
 }
 
 func main() {
@@ -37,6 +38,9 @@ func main() {
 	}
 	if cfg.Listen == "" {
 		cfg.Listen = ":8080"
+	}
+	if cfg.FrontendPort == 0 {
+		cfg.FrontendPort = 5173
 	}
 
 	p := pool.New(cfg.Accounts)

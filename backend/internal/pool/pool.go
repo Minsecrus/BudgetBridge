@@ -30,16 +30,34 @@ func (a *Account) IsAvailable() bool {
 	return a.Enabled && time.Now().After(a.CooldownUntil)
 }
 
+type sessEntry struct {
+	acc      *Account
+	lastUsed time.Time
+}
+
 type Pool struct {
 	accounts []*Account
 	counter  atomic.Int64
+	sessMu   sync.Mutex
+	sessions map[string]sessEntry
 }
 
 func New(cfgs []AccountConfig) *Pool {
-	p := &Pool{}
+	p := &Pool{sessions: make(map[string]sessEntry)}
 	for i := range cfgs {
 		p.accounts = append(p.accounts, &Account{AccountConfig: cfgs[i], Enabled: true})
 	}
+	go func() {
+		for range time.Tick(5 * time.Minute) {
+			p.sessMu.Lock()
+			for k, e := range p.sessions {
+				if time.Since(e.lastUsed) > 30*time.Minute {
+					delete(p.sessions, k)
+				}
+			}
+			p.sessMu.Unlock()
+		}
+	}()
 	return p
 }
 
@@ -66,6 +84,33 @@ func (p *Pool) Next() *Account {
 		}
 	}
 	return nil
+}
+
+func (p *Pool) NextForSession(sessionKey string) *Account {
+	if sessionKey == "" {
+		return p.Next()
+	}
+	p.sessMu.Lock()
+	e, ok := p.sessions[sessionKey]
+	if ok {
+		if e.acc.IsAvailable() {
+			e.lastUsed = time.Now()
+			p.sessions[sessionKey] = e
+			p.sessMu.Unlock()
+			atomic.AddInt64(&e.acc.RequestCount, 1)
+			return e.acc
+		}
+		delete(p.sessions, sessionKey)
+	}
+	p.sessMu.Unlock()
+
+	acc := p.Next()
+	if acc != nil {
+		p.sessMu.Lock()
+		p.sessions[sessionKey] = sessEntry{acc: acc, lastUsed: time.Now()}
+		p.sessMu.Unlock()
+	}
+	return acc
 }
 
 func (p *Pool) Cooldown(acc *Account, d time.Duration) {

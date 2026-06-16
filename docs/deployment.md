@@ -28,16 +28,16 @@ cp backend/config.yaml.example backend/config.yaml
 docker compose up -d --build
 ```
 
-访问：
-- 前端面板：http://localhost:3000
-- API 端点：http://localhost:8080/v1 (OpenAI) 或 http://localhost:8080 (Anthropic)
+访问（端口以 `config.yaml` 中 `listen` 配置为准）：
+- 前端面板：http://localhost:<前端端口>
+- API 端点：http://localhost:\<端口\>/v1 (OpenAI) 或 http://localhost:\<端口\> (Anthropic)
 
 ## 配置文件
 
-编辑 `backend/config.yaml`：
+编辑 `backend/config.yaml`（这是所有配置的唯一真相源）：
 
 ```yaml
-listen: ":8080"
+listen: ":8080"              # 后端监听端口，按需修改
 upstream_url: "https://your-upstream-api.com/compatible-mode/v1"
 public_url: "https://your-domain.com"  # 你的域名或 IP:端口
 
@@ -50,7 +50,7 @@ accounts:
 
 **字段说明：**
 
-- `listen`: 后端监听地址，默认 `:8080`
+- `listen`: 后端监听端口（默认 `:8080`）。**修改此值后，Docker 和 Nginx 配置中的端口需同步更新**（使用 `deploy.sh` 可自动完成）
 - `upstream_url`: 上游模型服务地址（OpenAI 兼容格式）
 - `public_url`: 前端展示用的公开地址，留空则自动使用请求的 hostname:listen端口
 - `accounts`: 账号池配置，支持多个账号轮询
@@ -101,16 +101,16 @@ server {
 
     # 前端
     location / {
-        proxy_pass http://127.0.0.1:3000;
+        proxy_pass http://127.0.0.1:<前端端口>;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 
-    # API
+    # API（端口需与 config.yaml 中 listen 保持一致）
     location ~ ^/(v1|admin) {
-        proxy_pass http://127.0.0.1:8080;
+        proxy_pass http://127.0.0.1:<后端端口>;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -146,7 +146,7 @@ services:
   backend:
     build: ./backend
     ports:
-      - "127.0.0.1:8080:8080"
+      - "127.0.0.1:<后端端口>:<后端端口>"  # 端口需与 config.yaml 中 listen 一致
     volumes:
       - ./backend/config.yaml:/app/config.yaml
     restart: unless-stopped
@@ -154,7 +154,7 @@ services:
   frontend:
     build: ./frontend
     ports:
-      - "127.0.0.1:3000:80"
+      - "127.0.0.1:<前端端口>:80"
     restart: unless-stopped
 ```
 
@@ -228,23 +228,13 @@ cp backend/config.yaml backup/config.yaml.$(date +%Y%m%d)
 ### 查看账号状态
 
 ```bash
-curl http://localhost:8080/admin/accounts | jq
+# 端口以 config.yaml 中 listen 配置为准
+curl http://localhost:<端口>/admin/accounts | jq
 ```
 
 ### 添加账号
 
-通过前端面板添加，或调用 API：
-
-```bash
-curl -X POST http://localhost:8080/admin/accounts \
-  -H "Content-Type: application/json" \
-  -d '{
-    "alias": "账号B",
-    "api_key": "sk-...",
-    "ak_id": "LTAI5...",
-    "ak_secret": "..."
-  }'
-```
+通过前端面板添加。
 
 ### 查看日志
 
@@ -295,13 +285,13 @@ docker compose exec backend ./budgetbridge -check-account 0
 查看冷却中的账号：
 
 ```bash
-curl http://localhost:8080/admin/accounts | jq '.[] | select(.cooldown_secs > 0)'
+curl http://localhost:<端口>/admin/accounts | jq '.[] | select(.cooldown_secs > 0)'
 ```
 
 手动解除冷却：
 
 ```bash
-curl -X POST http://localhost:8080/admin/accounts/0/cooldown/clear
+curl -X POST http://localhost:<端口>/admin/accounts/0/cooldown/clear
 ```
 
 ### 连接超时

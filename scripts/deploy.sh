@@ -61,9 +61,21 @@ echo ""
 info "Configuring BudgetBridge..."
 echo ""
 
-# Listen port
-read -rp "Backend listen port [8080]: " LISTEN_PORT
-LISTEN_PORT="${LISTEN_PORT:-8080}"
+# Listen port - read from config.yaml if exists
+DEFAULT_BACKEND_PORT="8080"
+DEFAULT_FRONTEND_PORT="5173"
+if [ -f "backend/config.yaml" ]; then
+    EXISTING_BACKEND_PORT=$(grep -E "^listen:" backend/config.yaml 2>/dev/null | grep -oE '[0-9]+' || true)
+    [ -n "$EXISTING_BACKEND_PORT" ] && DEFAULT_BACKEND_PORT="$EXISTING_BACKEND_PORT"
+    EXISTING_FRONTEND_PORT=$(grep -E "^frontend_port:" backend/config.yaml 2>/dev/null | grep -oE '[0-9]+' || true)
+    [ -n "$EXISTING_FRONTEND_PORT" ] && DEFAULT_FRONTEND_PORT="$EXISTING_FRONTEND_PORT"
+fi
+
+read -rp "Backend port [${DEFAULT_BACKEND_PORT}]: " LISTEN_PORT
+LISTEN_PORT="${LISTEN_PORT:-${DEFAULT_BACKEND_PORT}}"
+
+read -rp "Frontend port [${DEFAULT_FRONTEND_PORT}]: " FRONTEND_PORT
+FRONTEND_PORT="${FRONTEND_PORT:-${DEFAULT_FRONTEND_PORT}}"
 
 # Public URL
 read -rp "Public URL (e.g. https://api.example.com, leave empty for auto): " PUBLIC_URL
@@ -72,56 +84,14 @@ read -rp "Public URL (e.g. https://api.example.com, leave empty for auto): " PUB
 read -rp "Upstream API URL [https://dashscope.aliyuncs.com/compatible-mode/v1]: " UPSTREAM_URL
 UPSTREAM_URL="${UPSTREAM_URL:-https://dashscope.aliyuncs.com/compatible-mode/v1}"
 
-# Accounts
-echo ""
-info "Adding API accounts (press Enter with empty key to stop):"
-echo ""
-
-ACCOUNTS=""
-ACC_COUNT=0
-while true; do
-    echo -e "${YELLOW}── Account $((ACC_COUNT + 1)) ──${NC}"
-    read -rp "  Alias (optional): " ACC_ALIAS
-    read -rp "  API Key: " ACC_KEY
-
-    if [ -z "$ACC_KEY" ]; then
-        break
-    fi
-
-    read -rp "  AccessKey ID (for balance check, optional): " ACC_AK_ID
-    read -rp "  AccessKey Secret (optional): " ACC_AK_SECRET
-
-    [ -z "$ACC_ALIAS" ] && ACC_ALIAS="账号$((ACC_COUNT + 1))"
-
-    ACCOUNTS+="  - alias: \"$ACC_ALIAS\"
-    api_key: \"$ACC_KEY\""
-
-    if [ -n "$ACC_AK_ID" ]; then
-        ACCOUNTS+="
-    ak_id: \"$ACC_AK_ID\""
-    fi
-    if [ -n "$ACC_AK_SECRET" ]; then
-        ACCOUNTS+="
-    ak_secret: \"$ACC_AK_SECRET\""
-    fi
-    ACCOUNTS+=$'\n'
-
-    ACC_COUNT=$((ACC_COUNT + 1))
-    log "Added: $ACC_ALIAS"
-done
-
-if [ "$ACC_COUNT" -eq 0 ]; then
-    warn "No accounts added. You can add them later via the web panel."
-    ACCOUNTS="  []"
-fi
-
-# Generate config.yaml
+# Generate config.yaml (accounts managed via frontend)
 cat > backend/config.yaml << EOF
 listen: ":${LISTEN_PORT}"
+frontend_port: ${FRONTEND_PORT}
 upstream_url: "${UPSTREAM_URL}"
 ${PUBLIC_URL:+public_url: "${PUBLIC_URL}"}
 accounts:
-${ACCOUNTS}
+  []
 EOF
 
 log "Generated backend/config.yaml"
@@ -152,8 +122,9 @@ if [[ "$SETUP_NGINX" =~ ^[Yy] ]]; then
     cp nginx/budgetbridge.conf /etc/nginx/conf.d/budgetbridge.conf
     sed -i "s/your-domain.com/${DOMAIN}/g" /etc/nginx/conf.d/budgetbridge.conf
 
-    # Update upstream ports
-    sed -i "s/127.0.0.1:8080/127.0.0.1:${LISTEN_PORT}/g" /etc/nginx/conf.d/budgetbridge.conf
+    # Update port placeholders
+    sed -i "s/__BACKEND_PORT__/${LISTEN_PORT}/g" /etc/nginx/conf.d/budgetbridge.conf
+    sed -i "s/__FRONTEND_PORT__/${FRONTEND_PORT}/g" /etc/nginx/conf.d/budgetbridge.conf
 
     # Check if certbot is available
     if command -v certbot &>/dev/null; then
@@ -176,6 +147,13 @@ fi
 echo ""
 info "Starting BudgetBridge with Docker Compose..."
 
+# Replace port placeholders in docker-compose.yml
+sed -i "s/__BACKEND_PORT__/${LISTEN_PORT}/g" docker-compose.yml
+sed -i "s/__FRONTEND_PORT__/${FRONTEND_PORT}/g" docker-compose.yml
+
+# Replace port placeholder in frontend nginx config for Docker build
+sed -i "s/__BACKEND_PORT__/${LISTEN_PORT}/g" frontend/nginx.conf
+
 # If using Nginx externally, bind to localhost only
 if [[ "$SETUP_NGINX" =~ ^[Yy] ]]; then
     # Create override for production
@@ -186,12 +164,15 @@ services:
       - "127.0.0.1:${LISTEN_PORT}:${LISTEN_PORT}"
   frontend:
     ports:
-      - "127.0.0.1:3000:80"
+      - "127.0.0.1:${FRONTEND_PORT}:80"
 EOF
     log "Created docker-compose.override.yml (localhost-only ports)"
 fi
 
 docker compose up -d --build
+
+# Restore template files to keep repo clean
+git checkout -- docker-compose.yml frontend/nginx.conf
 
 echo ""
 echo -e "${GREEN}═══════════════════════════════════════════${NC}"
@@ -205,7 +186,7 @@ if [[ "$SETUP_NGINX" =~ ^[Yy] ]]; then
     echo -e "  Anthropic: ${BLUE}https://${DOMAIN}${NC}"
 else
     IP=$(hostname -I 2>/dev/null | awk '{print $1}' || echo "localhost")
-    echo -e "  Frontend:  ${BLUE}http://${IP}:3000${NC}"
+    echo -e "  Frontend:  ${BLUE}http://${IP}:${FRONTEND_PORT}${NC}"
     echo -e "  OpenAI:    ${BLUE}http://${IP}:${LISTEN_PORT}/v1${NC}"
     echo -e "  Anthropic: ${BLUE}http://${IP}:${LISTEN_PORT}${NC}"
 fi

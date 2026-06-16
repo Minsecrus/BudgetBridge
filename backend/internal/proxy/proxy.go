@@ -31,6 +31,7 @@ func Handler(p *pool.Pool, upstream, modelOverride string) gin.HandlerFunc {
 			Stream bool `json:"stream"`
 		}
 		json.Unmarshal(body, &payload) //nolint
+		sessionKey := c.GetHeader("Authorization")
 
 		if modelOverride != "" {
 			var m map[string]json.RawMessage
@@ -41,7 +42,7 @@ func Handler(p *pool.Pool, upstream, modelOverride string) gin.HandlerFunc {
 		}
 
 		for i := 0; i < p.Len(); i++ {
-			acc := p.Next()
+			acc := p.NextForSession(sessionKey)
 			if acc == nil {
 				break
 			}

@@ -21,10 +21,13 @@
 copy backend\config.yaml.example backend\config.yaml
 # 编辑 config.yaml，填入真实的 api_key / ak_id / ak_secret
 
-# 2. 一键启动（弹出两个终端窗口）
+# 2. 编辑 config.yaml，填入真实的 api_key / ak_id / ak_secret
+#    端口等配置均在 config.yaml 中设置（默认 :8080）
+
+# 3. 一键启动（弹出两个终端窗口）
 .\dev.ps1
 # 前端: http://localhost:5173
-# 后端: http://localhost:8080
+# 后端: http://localhost:<config.yaml 中 listen 的端口>
 ```
 
 > 需要先安装 [air](https://github.com/air-verse/air) 实现后端热重载：
@@ -35,11 +38,11 @@ copy backend\config.yaml.example backend\config.yaml
 
 ```bash
 cp backend/config.yaml.example backend/config.yaml
-# 编辑 config.yaml
+# 编辑 config.yaml，设置 listen 端口和其他配置
 
 docker compose up -d
-# 前端: http://localhost:3000
-# API:  http://localhost:8080/v1
+# 前端: http://localhost:<前端端口>
+# API:  http://localhost:<config.yaml 中配置的端口>/v1
 ```
 
 #### 交互式部署（推荐）
@@ -48,7 +51,7 @@ docker compose up -d
 ./scripts/deploy.sh
 ```
 
-脚本会引导填写配置、添加账号，可选自动配置 Nginx + HTTPS。
+脚本会引导填写配置（包括端口）、添加账号，可选自动配置 Nginx + HTTPS。所有配置会写入 `backend/config.yaml`，并自动同步到 Docker 和 Nginx 配置。
 
 #### 生产环境
 
@@ -102,8 +105,10 @@ Base URL 末尾**不带** `/v1`：
 
 ## 配置说明
 
+所有配置均在 `backend/config.yaml` 中管理：
+
 ```yaml
-listen: ":8080"
+listen: ":8080"              # 后端监听端口（按需修改）
 upstream_url: "https://your-upstream-api.com/compatible-mode/v1"
 public_url: "https://your-domain.com"  # 前端展示用的公开地址，留空则自动拼接为请求的 hostname:listen端口
 
@@ -113,6 +118,8 @@ accounts:
     ak_id: "LTAI5..."        # AccessKey ID
     ak_secret: "..."         # AccessKey Secret
 ```
+
+> **端口配置**：修改 `listen` 后，需同步更新 `docker-compose.yml` 和 nginx 配置中的端口映射。建议使用 `./scripts/deploy.sh` 交互式部署脚本，它会自动从 config.yaml 读取端口并同步到各配置文件中。
 
 需要授予余额查询相关权限。
 
