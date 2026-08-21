@@ -23,18 +23,18 @@
 ```bash
 git clone <repo-url>
 cd BudgetBridge
-cp backend/config.yaml.example backend/config.yaml
+cp config.yaml.example config.yaml
 # 编辑 config.yaml
 docker compose up -d --build
 ```
 
-访问（端口以 `config.yaml` 中 `listen` 配置为准）：
-- 前端面板：http://localhost:<前端端口>
-- API 端点：http://localhost:\<端口\>/v1 (OpenAI) 或 http://localhost:\<端口\> (Anthropic)
+访问（通过 Caddy 统一入口，默认 80 端口；绑定域名时 Caddy 自动启用 HTTPS）：
+- 前端面板：http://localhost 或 https://<你的域名>
+- API 端点：http://localhost/v1 (OpenAI) 或 http://localhost (Anthropic)
 
 ## 配置文件
 
-编辑 `backend/config.yaml`（这是所有配置的唯一真相源）：
+编辑根目录的 `config.yaml`（这是所有配置的唯一真相源）：
 
 ```yaml
 listen: ":8080"              # 后端监听端口，按需修改
@@ -50,7 +50,7 @@ accounts:
 
 **字段说明：**
 
-- `listen`: 后端监听端口（默认 `:8080`）。**修改此值后，Docker 和 Nginx 配置中的端口需同步更新**（使用 `deploy.sh` 可自动完成）
+- **修改 `listen`** 后同步更新 `caddy/Caddyfile` 中的端口（backend 端口由 Caddy 在内部网络反代，无需在 docker-compose.yml 暴露）。建议使用 `./scripts/deploy.sh` 交互式部署脚本自动同步。
 - `upstream_url`: 上游模型服务地址（OpenAI 兼容格式）
 - `public_url`: 前端展示用的公开地址，留空则自动使用请求的 hostname:listen端口
 - `accounts`: 账号池配置，支持多个账号轮询
@@ -87,74 +87,57 @@ docker compose up -d
 
 ## 生产环境配置
 
-### Nginx 反向代理 + HTTPS
+### Caddy 反向代理 + 自动 HTTPS
 
-创建 `/etc/nginx/conf.d/budgetbridge.conf`：
+Caddy 已内置于 `docker-compose.yml`，无需额外安装。配置模板位于 `caddy/Caddyfile`。
 
-```nginx
-server {
-    listen 443 ssl http2;
-    server_name your-domain.com;
+使用 `./scripts/deploy.sh` 部署时，输入域名即可自动启用 HTTPS（Let's Encrypt 自动申请续期）；留空则以 HTTP-only 模式运行在 `:80`。
 
-    ssl_certificate /etc/ssl/certs/your-cert.pem;
-    ssl_certificate_key /etc/ssl/private/your-key.pem;
+手动配置示例（`caddy/Caddyfile`）：
 
-    # 前端
-    location / {
-        proxy_pass http://127.0.0.1:<前端端口>;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+```
+api.example.com {
+    handle /admin/* {
+        reverse_proxy backend:8080
     }
-
-    # API（端口需与 config.yaml 中 listen 保持一致）
-    location ~ ^/(v1|admin) {
-        proxy_pass http://127.0.0.1:<后端端口>;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        
-        # SSE 流式响应支持
-        proxy_buffering off;
-        proxy_cache off;
-        proxy_read_timeout 300s;
+    handle /v1/* {
+        reverse_proxy backend:8080 {
+            flush_interval -1
+        }
     }
-}
-
-server {
-    listen 80;
-    server_name your-domain.com;
-    return 301 https://$host$request_uri;
+    handle {
+        root * /srv
+        try_files {path} /index.html
+        file_server
+    }
 }
 ```
 
-测试并重载：
-
-```bash
-sudo nginx -t
-sudo systemctl reload nginx
-```
+将 `api.example.com` 替换为你的域名，Caddy 自动完成 HTTP→HTTPS 跳转和证书管理。
 
 ### 修改 Docker Compose 端口
 
-生产环境建议只监听本地，通过 Nginx 暴露：
+生产环境建议只监听本地，通过 Caddy 暴露：
 
 ```yaml
 services:
   backend:
     build: ./backend
     ports:
-      - "127.0.0.1:<后端端口>:<后端端口>"  # 端口需与 config.yaml 中 listen 一致
+      - "127.0.0.1:<后端端口>:<后端端口>"  # 可选：仅本机调试用；生产可省略，由 Caddy 内部反代 backend:<端口>
     volumes:
-      - ./backend/config.yaml:/app/config.yaml
+      - ./config.yaml:/app/config.yaml
     restart: unless-stopped
 
-  frontend:
-    build: ./frontend
+  caddy:
+    build:
+      context: .
+      dockerfile: caddy/Dockerfile
     ports:
-      - "127.0.0.1:<前端端口>:80"
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile
     restart: unless-stopped
 ```
 
@@ -222,7 +205,7 @@ API Key 填任意值（后端自动替换为真实 key）。
 
 ```bash
 # 定期备份 config.yaml
-cp backend/config.yaml backup/config.yaml.$(date +%Y%m%d)
+cp config.yaml backup/config.yaml.$(date +%Y%m%d)
 ```
 
 ### 查看账号状态
@@ -264,11 +247,7 @@ sudo journalctl -u budgetbridge -f
              memory: 1G
    ```
 
-3. **启用 Gzip 压缩**（Nginx）：
-   ```nginx
-   gzip on;
-   gzip_types application/json text/event-stream;
-   ```
+3. **启用 Gzip 压缩**（Caddy 默认开启，无需配置）
 
 ## 故障排查
 
@@ -296,4 +275,4 @@ curl -X POST http://localhost:<端口>/admin/accounts/0/cooldown/clear
 
 ### 连接超时
 
-检查 Nginx 配置中的 `proxy_read_timeout` 是否足够长（建议 300s）。
+检查 Caddy 配置中 `flush_interval -1` 是否已设置（`/v1/*` 路由）。

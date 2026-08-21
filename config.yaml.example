@@ -1,0 +1,73 @@
+listen: ":8080"
+frontend_port: 5173
+# 统计数据库路径（滚动保留近 7 天）；Docker 部署需挂卷 ./data:/app/data
+stats_db: "data/stats.db"
+# 上游模型服务的 OpenAI 兼容 Base URL（含 /v1）
+upstream_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+# 上游流量走 SOCKS5 代理（跨境部署经优质线路网关回境内时使用）
+# 留空则直连；格式：socks5://[user:pass@]host:port 或 socks5h://[user:pass@]host:port
+# upstream_proxy: "socks5://127.0.0.1:1080"
+# 前端展示用的公开地址，留空则自动拼接 hostname:8080
+# public_url: "https://your-domain.com"
+
+# CORS 允许的来源（留空则允许所有来源，仅适合本地/内网；生产建议显式指定）
+# allow_origins: ["https://your-domain.com"]
+
+# 调度器：affinity（加权 Rendezvous，余额感知，默认）| round_robin
+# scheduler: "affinity"
+# 余额低于此值的账户：已映射会话迁走，但仍保留 floor 权重继续 drain 余额（单位：元，默认 20）
+# low_balance_floor: 20.0
+# 冷请求排干：把零散小请求（无 assistant 轮次、body 小于此字节数）更多路由到低余额号加速排干；
+#   多轮会话仍走高余额倾斜以保 prefix cache。默认 true，首次配置缺省时按 on 处理。
+# cold_drain: true
+# cold_request_bytes: 8192
+# 自适应 429 退避上限（秒）：同一账号连续 429 时冷却时长 20→40→80→160→320 阶梯上升，封顶此值；成功后回落。默认 320
+# throttle_max_cooldown: 320
+# 每账号每模型免费额度（token）：>0 时冷请求优先路由到"该模型还有免费额度"的账号——尤其回收那些在
+#   别的模型上已耗尽低余额、但本模型 1M 没碰过的号。仅作用于冷请求路径，不影响多轮会话亲和性（warm 仍
+#   走余额 HRW）。本地记账（重启归零），0 关闭（冷请求回退到按余额排干，即本特性上线前的行为）。默认 0
+# free_quota_per_model: 1000000
+
+# 逐条请求日志（前端实时流 +admin/events、历史 /admin/logs）
+# 关闭时热路径不构建日志事件、不向请求体注入 stream_options.include_usage。默认 true，首次缺省按 on 处理
+# reqlog_enabled: true
+# 实时回看的内存环形缓冲容量（条）；实时流走内存，历史走下面的 DB
+# reqlog_capacity: 1000
+# 请求日志 SQLite 路径（按下面的保留天数滚动清理）；Docker 部署需挂卷 ./data:/app/data
+# reqlog_db: "data/reqlog.db"
+# 请求日志保留天数，默认 7
+# reqlog_retention_days: 7
+
+# 管理员密码（明文，首次启动后自动 bcrypt 加密并改写此文件）
+# 留空则不启用登录保护
+admin_password: "changeme"
+
+accounts:
+  - alias: "账号A"
+    api_key: "sk-xxxxxxxxxxxxxxxxxxxx"
+    ak_id: "LTAI5xxxxxxxxxxxx"
+    ak_secret: "xxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    # 业务空间专属域名（选填）：填了该账号就走专属域名，留空用全局 upstream_url。
+    # 可填 host（ws-xxxxx.cn-beijing.maas.aliyuncs.com，路径 /compatible-mode/v1 沿用全局）
+    # 或完整 base URL（含 ://，路径自定义）。坏输入会 fail-closed：该账号请求失败、重试切下一个号。
+    # ws_domain: "ws-xxxxxxxxxxxxxx.cn-beijing.maas.aliyuncs.com"
+
+  - alias: "账号B"
+    api_key: "sk-xxxxxxxxxxxxxxxxxxxx"
+    ak_id: "LTAI5xxxxxxxxxxxx"
+    ak_secret: "xxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+
+# 兜底通道（fallbacks）：号池耗尽（全员不可用/冷却/被排除）时的备份，OpenAI 兼容端点。
+# 无法查余额，故不参与加权调度，仅作号池的备份。每个通道的 models 是白名单——
+# 只有请求模型在白名单内才会用到该通道；"*" 表示通配（任意模型）；留空表示不匹配任何模型。
+# base_url 填 OpenAI 兼容 base（含 /v1），转发时自动追加 /chat/completions。
+# fallbacks:
+#   - name: "OpenRouter"
+#     base_url: "https://openrouter.ai/api/v1"
+#     api_key: "sk-or-..."
+#     models: ["qwen-plus", "gpt-4o"]
+#   - name: "通配备份"
+#     base_url: "https://other.example.com/v1"
+#     api_key: "sk-..."
+#     models: ["*"]
+

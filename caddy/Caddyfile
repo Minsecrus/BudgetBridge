@@ -1,0 +1,19 @@
+# {$DOMAIN} / {$BACKEND_PORT} are injected by docker-compose (from .env,
+# written by deploy.sh). DOMAIN defaults to :80 → HTTP-only; HTTPS is opt-in:
+# set a domain to get automatic Let's Encrypt certs. The Caddyfile itself is a
+# clean template (no sed placeholders), so container restarts keep working.
+{$DOMAIN} {
+	handle /admin/* {
+		reverse_proxy backend:{$BACKEND_PORT}
+	}
+	handle /v1/* {
+		reverse_proxy backend:{$BACKEND_PORT} {
+			flush_interval -1
+		}
+	}
+	handle {
+		root * /srv
+		try_files {path} /index.html
+		file_server
+	}
+}

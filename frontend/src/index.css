@@ -1,3 +1,31 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer utilities {
+  .glass {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+  }
+  .text-gradient {
+    background: linear-gradient(90deg, #a78bfa, #f0abfc, #67e8f9);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .skeleton {
+    position: relative;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.06);
+  }
+  .skeleton::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent);
+    animation: shimmer 1.5s infinite;
+  }
+}

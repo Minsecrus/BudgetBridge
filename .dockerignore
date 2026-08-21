@@ -1,0 +1,30 @@
+# Build context 优化：caddy 镜像的 context 是项目根（见 docker-compose.yml），
+# 下面这些与镜像无关 / 体积大 / 含密钥，忽略后显著加快构建上传并避免泄露。
+
+# Git 元数据（体积大）
+.git
+.gitignore
+.gitattributes
+
+# 前端依赖与本地构建产物（容器内 npm ci 重新安装、npm run build 重新生成）
+frontend/node_modules
+frontend/dist
+frontend/.vite
+
+# 后端构建/临时产物
+backend/tmp
+backend/budgetbridge
+backend/budgetbridge.exe
+
+# 本地配置（含密钥，绝不打入镜像；运行时由 docker-compose 挂载）
+config.yaml
+
+# Claude / agent 工作目录
+.claude
+
+# IDE / OS 杂项
+.idea
+.vscode
+.DS_Store
+Thumbs.db
+*.swp

@@ -2,15 +2,39 @@ services:
   backend:
     build: ./backend
     volumes:
-      - ./backend/config.yaml:/app/config.yaml:ro
-    ports:
-      - "__BACKEND_PORT__:__BACKEND_PORT__"
+      - ./config.yaml:/app/config.yaml
+      - ./data:/app/data
     restart: unless-stopped
+    # Graceful shutdown: SIGTERM lets the app drain in-flight requests (incl.
+    # long streaming completions) before exiting. stop_grace_period is the hard
+    # kill deadline — keep it ≥ the app's internal 5m drain ceiling so the
+    # container isn't SIGKILLed mid-drain. `docker compose up -d --build`
+    # recreates the container, so this also covers zero-traffic upgrades.
+    stop_signal: SIGTERM
+    stop_grace_period: 6m
 
-  frontend:
-    build: ./frontend
+  caddy:
+    build:
+      context: .
+      dockerfile: caddy/Dockerfile
     ports:
-      - "__FRONTEND_PORT__:80"
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      # Substituted into the Caddyfile via {$DOMAIN}/{$BACKEND_PORT}. Defaults
+      # let `docker compose up` work standalone (HTTP-only on :80); deploy.sh
+      # writes a .env to override these.
+      - DOMAIN=${DOMAIN:-:80}
+      - BACKEND_PORT=${BACKEND_PORT:-8080}
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
     depends_on:
       - backend
     restart: unless-stopped
+
+volumes:
+  caddy_data:
+  caddy_config:

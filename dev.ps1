@@ -3,6 +3,10 @@
 
 $ErrorActionPreference = "Stop"
 
+# Dev mode: backend acts as the single entry point, reverse-proxying the
+# frontend to the vite dev server — open the backend port and you get everything.
+$env:BB_DEV = "1"
+
 # Read port configuration from config.yaml
 $configPath = Join-Path $PSScriptRoot "config.yaml"
 if (-not (Test-Path $configPath)) {
@@ -15,8 +19,8 @@ $backendPort = if ($configContent -match 'listen:\s*"?:(\d+)"?') { $matches[1] }
 $frontendPort = if ($configContent -match 'frontend_port:\s*(\d+)') { $matches[1] } else { "5173" }
 
 Write-Host "Starting BudgetBridge development servers..." -ForegroundColor Green
-Write-Host "  Backend:  http://localhost:$backendPort" -ForegroundColor Cyan
-Write-Host "  Frontend: http://localhost:$frontendPort" -ForegroundColor Cyan
+Write-Host "  入口（前端 + API）:  http://localhost:$backendPort" -ForegroundColor Cyan
+Write-Host "  (dev 模式: backend 反代 vite, 只需访问上面这一个地址)" -ForegroundColor DarkGray
 Write-Host ""
 
 # Start backend

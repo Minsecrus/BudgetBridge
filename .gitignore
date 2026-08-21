@@ -4,15 +4,33 @@ backend/budgetbridge.exe
 backend/tmp/
 
 # Secrets — NEVER commit
-backend/config.yaml
+config.yaml
+.env
 
 # Go
 backend/vendor/
+backend/*.out
+backend/coverage.out
 
 # Node
-frontend/node_modules/
+node_modules/
 frontend/dist/
 frontend/.vite/
+frontend/tsconfig.tsbuildinfo
+
+# Local scratch / binaries
+*.exe
+traverse*
+
+# Runtime data (SQLite, logs)
+data/
+*.log
+
+# AI agent files
+CLAUDE.md
+agent.md
+.claude/
+.superpowers/
 
 # OS / IDE
 .DS_Store
@@ -20,3 +38,6 @@ Thumbs.db
 .idea/
 .vscode/
 *.swp
+
+# Local SSH debugging scripts (contain hardcoded credentials — never commit)
+scripts/_ssh_*.py
